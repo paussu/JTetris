@@ -1,9 +1,12 @@
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use crate::tetromino::{Tetromino, Block, BlockType, TetrominoType};
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use crate::tetromino::BlockType::*;
 use gtk::glib::random_int_range;
+use std::thread::sleep;
+use crate::tetromino::TetrominoType::*;
+use sdl2::Sdl;
 
 pub struct Game
 {
@@ -93,24 +96,52 @@ impl Game
                 Event::Quit {..} |
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     self.is_running = false;
-                },
-                Event::KeyDown { keycode: Some(Keycode::Space), repeat: false, .. } => {
-                    self.insert_tetromino();
-                },
-                Event::KeyDown { keycode: Some(Keycode::Left), repeat: false, .. } => {
-                    self.update_position(-1, 0);
-                },
-                Event::KeyDown { keycode: Some(Keycode::Right), repeat: false, .. } => {
-                    self.update_position(1, 0);
-                },
-                Event::KeyDown { keycode: Some(Keycode::Up), repeat: false, .. } => {
-                    //self.rotate_tetromino();
-                },
-                Event::KeyDown { keycode: Some(Keycode::Down), repeat: false, .. } => {
-                    self.update_position(0, 1);
-                },
+                }
                 _ => {}
             }
+        }
+
+        if self.key_pressed(Keycode::Escape)
+        {
+            self.is_running = false;
+        }
+
+        if self.key_pressed(Keycode::Space)
+        {
+            for i in 0..self.map_height - 2
+            {
+                if !self.update_position(0, 1)
+                {
+                    break;
+                }
+            }
+            self.update_blocks();
+        }
+
+        if self.key_pressed(Keycode::Left)
+        {
+            self.update_position(-1, 0);
+        }
+
+        if self.key_pressed(Keycode::Right)
+        {
+            self.update_position(1, 0);
+        }
+
+        if self.key_pressed(Keycode::Up)
+        {
+            self.rotate_tetromino();
+        }
+
+        if self.key_pressed(Keycode::Down)
+        {
+            self.update_position(0, 1);
+        }
+
+        if self.key_pressed(Keycode::Return)
+        {
+            self.insert_tetromino();
+            //if(gameRestarted) gameRestarted = false;
         }
     }
 
@@ -147,13 +178,14 @@ impl Game
                     || matches!(self.game_map[x][y].block_type, MOVING)
                     || matches!(self.game_map[x][y].block_type, DROPPED)
                 {
+                    self.sdl_canvas.set_draw_color(sdl2::pixels::Color::RGB(self.game_map[x][y].color.r, self.game_map[x][y].color.g, self.game_map[x][y].color.b));
+
                     let mut map_rect = sdl2::rect::Rect::new(0, 0, 0, 0);
                     map_rect.x = 100 + x as i32 * (self.block_size + 2);
                     map_rect.y = 100 + y as i32 * (self.block_size + 2);
                     map_rect.h = self.block_size;
                     map_rect.w = self.block_size;
                     self.sdl_canvas.draw_rect(map_rect);
-                    self.sdl_canvas.set_draw_color(sdl2::pixels::Color::RGB(self.game_map[x][y].color.r, self.game_map[x][y].color.g, self.game_map[x][y].color.b));
                 }
             }
         }
@@ -247,9 +279,76 @@ impl Game
         }
     }
 
-    fn rotate_tetromino()
+    fn rotate_tetromino(&mut self)
     {
+        if self.tetromino.is_none()
+        {
+            return;
+        }
+        if matches!(self.tetromino.as_ref().unwrap().tetromino_type, O)
+        {
+            return;
+        }
 
+        let pivot = sdl2::rect::Point::new(2, 1);
+        let mut new_blocks = vec![vec![BlockType::EMPTY; 4]; 4];
+
+        if matches!(self.tetromino.as_ref().unwrap().tetromino_type, I) && (self.tetromino.as_ref().unwrap().rotation == 90 || self.tetromino.as_ref().unwrap().rotation  == 270)
+        {
+            new_blocks[2][0] = MOVING;   //  #
+            new_blocks[2][1] = MOVING;   //  #
+            new_blocks[2][2] = MOVING;   //  #
+            new_blocks[2][3] = MOVING;   //  #
+        }
+        else
+        {
+        for x in 0..4
+        {
+            for y in 0..4
+            {
+                if matches!(self.tetromino.as_ref().unwrap().blocks[x][y].block_type, MOVING)
+                {
+                    let relative_vector = sdl2::rect::Point::new(x as i32 - pivot.x, y as i32 - pivot.y);
+                    let mut transformed_vector = sdl2::rect::Point::new(0, 0);
+
+                    transformed_vector.x = 0 * relative_vector.x + (-1 * relative_vector.y);
+                    transformed_vector.y = 1 * relative_vector.x + 0 * relative_vector.y;
+
+                    let position_vector = sdl2::rect::Point::new(transformed_vector.x + pivot.x, transformed_vector.y + pivot.y);
+                    if position_vector.x >= 0 && position_vector.y() >= 0
+                    {
+                        new_blocks[position_vector.x as usize][position_vector.y as usize] = MOVING;
+                    }
+                }
+
+                self.tetromino.as_mut().unwrap().blocks[x][y].block_type = EMPTY;
+                }
+            }
+        }
+
+        for x in 0..4
+        {
+            for y in 0..4
+            {
+                if matches!(new_blocks[x][y], MOVING)
+                {
+                    self.tetromino.as_mut().unwrap().blocks[x][y].block_type = MOVING;
+                }
+                else
+                {
+                    self.tetromino.as_mut().unwrap().blocks[x][y].block_type = EMPTY;
+                }
+            }
+        }
+        self.tetromino.as_mut().unwrap().add_rotation();
+        if(self.tetromino.as_ref().unwrap().position.x < 1)
+        {
+            self.tetromino.as_mut().unwrap().position.x += 1;
+        }
+        if(self.tetromino.as_ref().unwrap().position.x > self.map_width - 6)
+        {
+            self.tetromino.as_mut().unwrap().position.x -= 1;
+        }
     }
 
     fn update_position(&mut self, x: i32, y: i32) -> bool
@@ -290,9 +389,17 @@ impl Game
 
     pub fn key_pressed(&self, k: Keycode) -> bool {
         let scancode = Scancode::from_keycode(k);
-        if let Some(s) = scancode {
-            return self.sdl_events.keyboard_state().is_scancode_pressed(s);
-        } else {
+        if let Some(s) = scancode
+        {
+            let pressed = self.sdl_events.keyboard_state().is_scancode_pressed(s);
+            if(pressed)
+            {
+                sleep(Duration::from_millis(50));
+            }
+            return pressed;
+        }
+        else
+        {
             panic!("Keycode does not exist: {:?}", scancode)
         }
     }

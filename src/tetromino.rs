@@ -51,8 +51,8 @@ pub struct Block
 
 pub struct Tetromino
 {
-    rotation: i32,
-    tetromino_type: TetrominoType,
+    pub(crate) rotation: i32,
+    pub(crate) tetromino_type: TetrominoType,
     color: sdl2::pixels::Color,
     pub(crate) position: sdl2::rect::Point,
     pub(crate) blocks: Vec<Vec<Block>>
@@ -121,6 +121,15 @@ impl Tetromino
             rotation: 0,
             position: sdl2::rect::Point::new(0, 0),
             blocks: tetro_blocks
+        }
+    }
+
+    pub fn add_rotation(&mut self)
+    {
+        self.rotation += 90;
+        if(self.rotation >= 360)
+        {
+            self.rotation = 0;
         }
     }
 }
