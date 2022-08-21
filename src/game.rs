@@ -1,12 +1,11 @@
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
-use crate::tetromino::{Tetromino, Block, BlockType, TetrominoType};
+use crate::tetromino::{Tetromino, Block, BlockType};
 use std::time::{Instant, Duration};
 use crate::tetromino::BlockType::*;
 use gtk::glib::random_int_range;
 use std::thread::sleep;
 use crate::tetromino::TetrominoType::*;
-use sdl2::Sdl;
 
 pub struct Game
 {
@@ -108,7 +107,7 @@ impl Game
 
         if self.key_pressed(Keycode::Space)
         {
-            for i in 0..self.map_height - 2
+            for _ in 0..self.map_height - 2
             {
                 if !self.update_position(0, 1)
                 {
@@ -206,17 +205,21 @@ impl Game
         block_color.b = random_int_range(0, 255) as u8;
         block_color.a = 255;
         self.tetromino = Some(Tetromino::new(rand::random(), block_color));
-        self.tetromino.as_mut().unwrap().position.x = 10;
-        self.tetromino.as_mut().unwrap().position.y = 0;
 
-        for x in 0..4
+        if let Some(ref mut tetromino) = self.tetromino
         {
-            for y in 0..4
+            tetromino.position.x = 10;
+            tetromino.position.y = 0;
+
+            for x in 0..4
             {
-                if matches!(self.tetromino.as_mut().unwrap().blocks[x][y].block_type, MOVING)
+                for y in 0..4
                 {
-                    self.game_map[x + self.tetromino.as_mut().unwrap().position.x as usize][y + self.tetromino.as_mut().unwrap().position.y as usize].block_type = MOVING;
-                    self.game_map[x + self.tetromino.as_mut().unwrap().position.x as usize][y + self.tetromino.as_mut().unwrap().position.y as usize].color = self.tetromino.as_mut().unwrap().blocks[x][y].color;
+                    if matches!(tetromino.blocks[x][y].block_type, MOVING)
+                    {
+                        self.game_map[x + tetromino.position.x as usize][y + tetromino.position.y as usize].block_type = MOVING;
+                        self.game_map[x + tetromino.position.x as usize][y + tetromino.position.y as usize].color = tetromino.blocks[x][y].color;
+                    }
                 }
             }
         }
@@ -224,10 +227,9 @@ impl Game
 
     fn update_blocks(&mut self)
     {
-        let mut line_full = true;
         for y in 0..self.map_height - 2
         {
-            line_full = true;
+            let mut line_full = true;
             for x in 2..self.map_width - 2
             {
                 if matches!(self.game_map[x as usize][2 as usize].block_type, DROPPED)
@@ -261,19 +263,17 @@ impl Game
 
     fn apply_tetromino_to_map(&mut self, value_to_apply: BlockType)
     {
-        if self.tetromino.is_none()
+        if let Some(ref mut tetromino) = self.tetromino
         {
-            return;
-        }
-
-        for x in 0..4
-        {
-            for y in 0..4
+            for x in 0..4
             {
-                if matches!(self.tetromino.as_mut().unwrap().blocks[x][y].block_type, MOVING)
+                for y in 0..4
                 {
-                    self.game_map[x + self.tetromino.as_mut().unwrap().position.x as usize][y + self.tetromino.as_mut().unwrap().position.y as usize].block_type = value_to_apply;
-                    self.game_map[x + self.tetromino.as_mut().unwrap().position.x as usize][y + self.tetromino.as_mut().unwrap().position.y as usize].color = self.tetromino.as_mut().unwrap().blocks[x][y].color;
+                    if matches!(tetromino.blocks[x][y].block_type, MOVING)
+                    {
+                        self.game_map[x + tetromino.position.x as usize][y + tetromino.position.y as usize].block_type = value_to_apply;
+                        self.game_map[x + tetromino.position.x as usize][y + tetromino.position.y as usize].color = tetromino.blocks[x][y].color;
+                    }
                 }
             }
         }
@@ -281,110 +281,112 @@ impl Game
 
     fn rotate_tetromino(&mut self)
     {
-        if self.tetromino.is_none()
+        if let Some(ref mut tetromino) = self.tetromino
         {
-            return;
-        }
-        if matches!(self.tetromino.as_ref().unwrap().tetromino_type, O)
-        {
-            return;
-        }
-
-        let pivot = sdl2::rect::Point::new(2, 1);
-        let mut new_blocks = vec![vec![BlockType::EMPTY; 4]; 4];
-
-        if matches!(self.tetromino.as_ref().unwrap().tetromino_type, I) && (self.tetromino.as_ref().unwrap().rotation == 90 || self.tetromino.as_ref().unwrap().rotation  == 270)
-        {
-            new_blocks[2][0] = MOVING;   //  #
-            new_blocks[2][1] = MOVING;   //  #
-            new_blocks[2][2] = MOVING;   //  #
-            new_blocks[2][3] = MOVING;   //  #
-        }
-        else
-        {
-        for x in 0..4
-        {
-            for y in 0..4
+            if matches!(tetromino.tetromino_type, O)
             {
-                if matches!(self.tetromino.as_ref().unwrap().blocks[x][y].block_type, MOVING)
+                return;
+            }
+
+            let pivot = sdl2::rect::Point::new(2, 1);
+            let mut new_blocks = vec![vec![BlockType::EMPTY; 4]; 4];
+
+            if matches!(tetromino.tetromino_type, I) && (tetromino.rotation == 90 || tetromino.rotation  == 270)
+            {
+                new_blocks[2][0] = MOVING;   //  #
+                new_blocks[2][1] = MOVING;   //  #
+                new_blocks[2][2] = MOVING;   //  #
+                new_blocks[2][3] = MOVING;   //  #
+            }
+            else
+            {
+            for x in 0..4
+            {
+                for y in 0..4
                 {
-                    let relative_vector = sdl2::rect::Point::new(x as i32 - pivot.x, y as i32 - pivot.y);
-                    let mut transformed_vector = sdl2::rect::Point::new(0, 0);
-
-                    transformed_vector.x = 0 * relative_vector.x + (-1 * relative_vector.y);
-                    transformed_vector.y = 1 * relative_vector.x + 0 * relative_vector.y;
-
-                    let position_vector = sdl2::rect::Point::new(transformed_vector.x + pivot.x, transformed_vector.y + pivot.y);
-                    if position_vector.x >= 0 && position_vector.y() >= 0
+                    if matches!(tetromino.blocks[x][y].block_type, MOVING)
                     {
-                        new_blocks[position_vector.x as usize][position_vector.y as usize] = MOVING;
+                        let relative_vector = sdl2::rect::Point::new(x as i32 - pivot.x, y as i32 - pivot.y);
+                        let mut transformed_vector = sdl2::rect::Point::new(0, 0);
+
+                        transformed_vector.x = 0 * relative_vector.x + (-1 * relative_vector.y);
+                        transformed_vector.y = 1 * relative_vector.x + 0 * relative_vector.y;
+
+                        let position_vector = sdl2::rect::Point::new(transformed_vector.x + pivot.x, transformed_vector.y + pivot.y);
+                        if position_vector.x >= 0 && position_vector.y() >= 0
+                        {
+                            new_blocks[position_vector.x as usize][position_vector.y as usize] = MOVING;
+                        }
+                    }
+
+                    tetromino.blocks[x][y].block_type = EMPTY;
                     }
                 }
-
-                self.tetromino.as_mut().unwrap().blocks[x][y].block_type = EMPTY;
-                }
             }
-        }
 
-        for x in 0..4
-        {
-            for y in 0..4
+            for x in 0..4
             {
-                if matches!(new_blocks[x][y], MOVING)
+                for y in 0..4
                 {
-                    self.tetromino.as_mut().unwrap().blocks[x][y].block_type = MOVING;
-                }
-                else
-                {
-                    self.tetromino.as_mut().unwrap().blocks[x][y].block_type = EMPTY;
+                    if matches!(new_blocks[x][y], MOVING)
+                    {
+                        tetromino.blocks[x][y].block_type = MOVING;
+                    }
+                    else
+                    {
+                        tetromino.blocks[x][y].block_type = EMPTY;
+                    }
                 }
             }
-        }
-        self.tetromino.as_mut().unwrap().add_rotation();
-        if(self.tetromino.as_ref().unwrap().position.x < 1)
-        {
-            self.tetromino.as_mut().unwrap().position.x += 1;
-        }
-        if(self.tetromino.as_ref().unwrap().position.x > self.map_width - 6)
-        {
-            self.tetromino.as_mut().unwrap().position.x -= 1;
-        }
+            tetromino.add_rotation();
+            if tetromino.position.x < 1
+            {
+                tetromino.position.x += 1;
+            }
+            if tetromino.position.x > self.map_width - 6
+            {
+                tetromino.position.x -= 1;
+            }
+        };
     }
 
     fn update_position(&mut self, x: i32, y: i32) -> bool
     {
-        if self.tetromino.is_none()
+        if let Some(ref mut tetromino) = self.tetromino
         {
-            return false;
-        }
-
-        for tx in 0..4
-        {
-            for ty in 0..4
+            for tx in 0..4
             {
-                if matches!(self.tetromino.as_mut().unwrap().blocks[tx][ty].block_type, MOVING)
+                for ty in 0..4
                 {
-                    let xpos = (tx as i32 + self.tetromino.as_mut().unwrap().position.x + x) as usize;
-                    let ypos = (ty as i32 + self.tetromino.as_mut().unwrap().position.y + y) as usize;
-
-                    if matches!(self.game_map[xpos][ypos].block_type, WALL) || matches!(self.game_map[xpos][ypos].block_type, DROPPED)
+                    if matches!(tetromino.blocks[tx][ty].block_type, MOVING)
                     {
-                        if y > 0
-                        {
-                            self.apply_tetromino_to_map(DROPPED);
-                            self.tetromino = None;
-                            self.insert_tetromino();
-                        }
+                        let xpos = (tx as i32 + tetromino.position.x + x) as usize;
+                        let ypos = (ty as i32 + tetromino.position.y + y) as usize;
 
-                        return false;
+                        if matches!(self.game_map[xpos][ypos].block_type, WALL) || matches!(self.game_map[xpos][ypos].block_type, DROPPED)
+                        {
+                            if y > 0
+                            {
+                                self.apply_tetromino_to_map(DROPPED);
+                                self.tetromino = None;
+                                self.insert_tetromino();
+                            }
+
+                            return false;
+                        }
                     }
                 }
             }
-        }
 
-        self.tetromino.as_mut().unwrap().position.x += x;
-        self.tetromino.as_mut().unwrap().position.y += y;
-        return true;
+            tetromino.position.x += x;
+            tetromino.position.y += y;
+
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     pub fn key_pressed(&self, k: Keycode) -> bool {
@@ -392,7 +394,7 @@ impl Game
         if let Some(s) = scancode
         {
             let pressed = self.sdl_events.keyboard_state().is_scancode_pressed(s);
-            if(pressed)
+            if pressed
             {
                 sleep(Duration::from_millis(50));
             }

@@ -85,8 +85,11 @@ impl Menu
 
     pub fn start_game()
     {
-        let mut game = Game::new(1024, 768).unwrap();
-        game.run_loop();
+        match Game::new(1024, 768)
+        {
+            Ok(mut game) => game.run_loop(),
+            Err(why) => panic!("{:?}", why),
+        };
     }
 
     pub fn show_options()
