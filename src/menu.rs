@@ -24,7 +24,7 @@ impl Menu
         let menu_app = gtk::Application::new(Some("com.github.gtk-rs.examples.basic"),
                                           Default::default());
 
-        menu_app.connect_activate(Menu::build_ui);
+        menu_app.connect_activate(move |menu_app| {Menu::build_ui(menu_app, width, height);});
 
         let menu = Ok(Menu {
             screen_width: width,
@@ -40,13 +40,13 @@ impl Menu
         menu
     }
 
-    pub fn build_ui(application: &gtk::Application) {
+    pub fn build_ui(application: &gtk::Application, width: i32, height: i32) {
         let window = gtk::ApplicationWindow::new(application);
 
         window.set_title("JTetris");
         window.set_border_width(10);
         window.set_position(gtk::WindowPosition::Center);
-        window.set_default_size(1024, 768);
+        window.set_default_size(width, height);
 
         let overlay = gtk::Overlay::new();
 
@@ -60,13 +60,34 @@ impl Menu
 
         let vertical_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
-        let start_button = gtk::Button::with_label("Start game");
-        let options_button = gtk::Button::with_label("Options");
-        let exit_button = gtk::Button::with_label("Exit game");
+        let margin: i32 = 12;
+        let start_button = gtk::Button::builder()
+        .label("Start")
+        .margin_top(margin)
+        .margin_bottom(margin)
+        .margin_start(margin)
+        .margin_end(margin)
+        .build();
+
+        let options_button = gtk::Button::builder()
+        .label("Options")
+        .margin_top(margin)
+        .margin_bottom(margin)
+        .margin_start(margin)
+        .margin_end(margin)
+        .build();
+
+        let exit_button = gtk::Button::builder()
+        .label("Exit")
+        .margin_top(margin)
+        .margin_bottom(margin)
+        .margin_start(margin)
+        .margin_end(margin)
+        .build();
 
         start_button.connect_clicked(move |_| {Menu::start_game()});
         options_button.connect_clicked(move |_|{Menu::show_options()});
-        exit_button.connect_clicked(glib::clone!(@weak application => move |_|{Menu::quit(&application)}));
+        exit_button.connect_clicked(glib::clone! (@weak application => move |_| Menu::quit(&application)));
 
         vertical_box.add(&start_button);
         vertical_box.add(&options_button);

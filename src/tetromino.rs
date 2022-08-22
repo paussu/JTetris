@@ -1,5 +1,5 @@
-use sdl2::Sdl;
 use sdl2::rect::Point;
+use sdl2::pixels::Color;
 
 use rand::{
     distributions::{Distribution, Standard},
@@ -46,68 +46,68 @@ impl Distribution<TetrominoType> for Standard {
 pub struct Block
 {
     pub(crate) block_type: BlockType,
-    pub(crate) color: sdl2::pixels::Color
+    pub(crate) color: Color
 }
 
 pub struct Tetromino
 {
     pub(crate) rotation: i32,
     pub(crate) tetromino_type: TetrominoType,
-    color: sdl2::pixels::Color,
-    pub(crate) position: sdl2::rect::Point,
+    color: Color,
+    pub(crate) position: Point,
     pub(crate) blocks: Vec<Vec<Block>>
 }
 
 impl Tetromino
 {
-    pub fn new(tetromino_type: TetrominoType, color: sdl2::pixels::Color) -> Tetromino
+    pub fn new(tetromino_type: TetrominoType, color: Color) -> Tetromino
     {
         let mut tetro_blocks: Vec<Vec<Block>>;
-        tetro_blocks = vec![vec![Block { block_type: EMPTY, color: sdl2::pixels::Color::WHITE }; 4]; 4];
+        tetro_blocks = vec![vec![Block { block_type: EMPTY, color: color }; 4]; 4];
 
-        if matches!(tetromino_type, I)
+        if matches!(tetromino_type, TetrominoType::I)
         {
             tetro_blocks[2][0].block_type = MOVING;   //  #
             tetro_blocks[2][1].block_type = MOVING;   //  #
             tetro_blocks[2][2].block_type = MOVING;   //  #
             tetro_blocks[2][3].block_type = MOVING;   //  #
         }
-        else if matches!(tetromino_type, O)
+        else if matches!(tetromino_type, TetrominoType::O)
         {
             tetro_blocks[1][0].block_type = MOVING;   // ##
             tetro_blocks[1][1].block_type = MOVING;   // ##
             tetro_blocks[2][0].block_type = MOVING;
             tetro_blocks[2][1].block_type = MOVING;
         }
-        else if matches!(tetromino_type, T)
+        else if matches!(tetromino_type, TetrominoType::T)
         {
             tetro_blocks[1][1].block_type = MOVING;   //  #
             tetro_blocks[2][0].block_type = MOVING;   // ##
             tetro_blocks[2][1].block_type = MOVING;   //  #
             tetro_blocks[2][2].block_type = MOVING;
         }
-        else if matches!(tetromino_type, J)
+        else if matches!(tetromino_type, TetrominoType::J)
         {
             tetro_blocks[2][0].block_type = MOVING;   //  #
             tetro_blocks[2][1].block_type = MOVING;   //  #
             tetro_blocks[2][2].block_type = MOVING;   // ##
             tetro_blocks[1][2].block_type = MOVING;
         }
-        else if matches!(tetromino_type, L)
+        else if matches!(tetromino_type, TetrominoType::L)
         {
             tetro_blocks[1][0].block_type = MOVING;   // #
             tetro_blocks[1][1].block_type = MOVING;   // #
             tetro_blocks[1][2].block_type = MOVING;   // ##
             tetro_blocks[2][2].block_type = MOVING;
         }
-        else if matches!(tetromino_type, S)
+        else if matches!(tetromino_type, TetrominoType::S)
         {
             tetro_blocks[1][0].block_type = MOVING;   // #
             tetro_blocks[1][1].block_type = MOVING;   // ##
             tetro_blocks[2][1].block_type = MOVING;   //  #
             tetro_blocks[2][2].block_type = MOVING;
         }
-        else if matches!(tetromino_type, Z)
+        else if matches!(tetromino_type, TetrominoType::Z)
         {
             tetro_blocks[2][0].block_type = MOVING;   //  #
             tetro_blocks[2][1].block_type = MOVING;   // ##
@@ -119,7 +119,7 @@ impl Tetromino
             tetromino_type: tetromino_type,
             color,
             rotation: 0,
-            position: sdl2::rect::Point::new(0, 0),
+            position: Point::new(0, 0),
             blocks: tetro_blocks
         }
     }
@@ -127,7 +127,8 @@ impl Tetromino
     pub fn add_rotation(&mut self)
     {
         self.rotation += 90;
-        if(self.rotation >= 360)
+
+        if self.rotation >= 360
         {
             self.rotation = 0;
         }

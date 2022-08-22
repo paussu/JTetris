@@ -1,4 +1,6 @@
 use sdl2::event::Event;
+use sdl2::pixels::Color;
+use sdl2::rect::{Point, Rect};
 use sdl2::keyboard::{Keycode, Scancode};
 use crate::tetromino::{Tetromino, Block, BlockType};
 use std::time::{Instant, Duration};
@@ -72,7 +74,7 @@ impl Game
             block_size: 10,
 
             tetromino: None,
-            game_map: vec![vec![Block { block_type: WALL, color: sdl2::pixels::Color::WHITE }; 30]; 20]
+            game_map: vec![vec![Block { block_type: WALL, color: Color::WHITE }; 30]; 20]
         });
 
         game
@@ -95,52 +97,40 @@ impl Game
                 Event::Quit {..} |
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     self.is_running = false;
-                }
+                },
+                Event::KeyDown { keycode: Some(Keycode::Left), .. } => {
+                    self.update_position(-1, 0);
+                    return;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Right), .. } => {
+                    self.update_position(1, 0);
+                    return;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Up), .. } => {
+                    self.rotate_tetromino();
+                    return;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Down), .. } => {
+                    self.update_position(0, 1);
+                    return;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Space), .. } => {
+                    for _ in 0..self.map_height - 2
+                    {
+                        if !self.update_position(0, 1)
+                        {
+                            break;
+                        }
+                    }
+                    self.update_blocks();
+                    return;
+                },
+                Event::KeyDown { keycode: Some(Keycode::Return), .. } => {
+                    self.insert_tetromino();
+                    return;
+                },
                 _ => {}
             }
-        }
-
-        if self.key_pressed(Keycode::Escape)
-        {
-            self.is_running = false;
-        }
-
-        if self.key_pressed(Keycode::Space)
-        {
-            for _ in 0..self.map_height - 2
-            {
-                if !self.update_position(0, 1)
-                {
-                    break;
-                }
-            }
-            self.update_blocks();
-        }
-
-        if self.key_pressed(Keycode::Left)
-        {
-            self.update_position(-1, 0);
-        }
-
-        if self.key_pressed(Keycode::Right)
-        {
-            self.update_position(1, 0);
-        }
-
-        if self.key_pressed(Keycode::Up)
-        {
-            self.rotate_tetromino();
-        }
-
-        if self.key_pressed(Keycode::Down)
-        {
-            self.update_position(0, 1);
-        }
-
-        if self.key_pressed(Keycode::Return)
-        {
-            self.insert_tetromino();
-            //if(gameRestarted) gameRestarted = false;
         }
     }
 
@@ -153,8 +143,9 @@ impl Game
         self.delta_time += frame_time;
 
         // Clamp maximum delta value
-        while self.delta_time >= 0.05 {
-            self.delta_time -= 0.05;
+        if self.delta_time >= 0.05
+        {
+            self.delta_time = 0.05;
         }
 
         if self.current_time.duration_since(self.last_time).as_millis() > self.drop_speed
@@ -166,7 +157,7 @@ impl Game
 
     fn generate_output(&mut self)
     {
-        self.sdl_canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
+        self.sdl_canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.sdl_canvas.clear();
 
         for x in 0..self.map_width as usize
@@ -177,14 +168,18 @@ impl Game
                     || matches!(self.game_map[x][y].block_type, MOVING)
                     || matches!(self.game_map[x][y].block_type, DROPPED)
                 {
-                    self.sdl_canvas.set_draw_color(sdl2::pixels::Color::RGB(self.game_map[x][y].color.r, self.game_map[x][y].color.g, self.game_map[x][y].color.b));
+                    self.sdl_canvas.set_draw_color(Color::RGB(self.game_map[x][y].color.r, self.game_map[x][y].color.g, self.game_map[x][y].color.b));
 
-                    let mut map_rect = sdl2::rect::Rect::new(0, 0, 0, 0);
+                    let mut map_rect = Rect::new(0, 0, 0, 0);
                     map_rect.x = 100 + x as i32 * (self.block_size + 2);
                     map_rect.y = 100 + y as i32 * (self.block_size + 2);
                     map_rect.h = self.block_size;
                     map_rect.w = self.block_size;
-                    self.sdl_canvas.draw_rect(map_rect);
+                    match self.sdl_canvas.fill_rect(map_rect)
+                    {
+                        Ok(()) => (),
+                        Err(why) => panic!("{:?}", why),
+                    }
                 }
             }
         }
@@ -199,7 +194,7 @@ impl Game
             return;
         }
 
-        let mut block_color = sdl2::pixels::Color::RGBA(0, 0, 0, 0 );
+        let mut block_color = Color::RGBA(0, 0, 0, 0 );
         block_color.r = random_int_range(0, 255) as u8;
         block_color.g = random_int_range(0, 255) as u8;
         block_color.b = random_int_range(0, 255) as u8;
@@ -288,7 +283,7 @@ impl Game
                 return;
             }
 
-            let pivot = sdl2::rect::Point::new(2, 1);
+            let pivot = Point::new(2, 1);
             let mut new_blocks = vec![vec![BlockType::EMPTY; 4]; 4];
 
             if matches!(tetromino.tetromino_type, I) && (tetromino.rotation == 90 || tetromino.rotation  == 270)
@@ -306,13 +301,13 @@ impl Game
                 {
                     if matches!(tetromino.blocks[x][y].block_type, MOVING)
                     {
-                        let relative_vector = sdl2::rect::Point::new(x as i32 - pivot.x, y as i32 - pivot.y);
-                        let mut transformed_vector = sdl2::rect::Point::new(0, 0);
+                        let relative_vector = Point::new(x as i32 - pivot.x, y as i32 - pivot.y);
+                        let mut transformed_vector = Point::new(0, 0);
 
                         transformed_vector.x = 0 * relative_vector.x + (-1 * relative_vector.y);
                         transformed_vector.y = 1 * relative_vector.x + 0 * relative_vector.y;
 
-                        let position_vector = sdl2::rect::Point::new(transformed_vector.x + pivot.x, transformed_vector.y + pivot.y);
+                        let position_vector = Point::new(transformed_vector.x + pivot.x, transformed_vector.y + pivot.y);
                         if position_vector.x >= 0 && position_vector.y() >= 0
                         {
                             new_blocks[position_vector.x as usize][position_vector.y as usize] = MOVING;
@@ -389,15 +384,13 @@ impl Game
         }
     }
 
+    #[allow(dead_code)]
     pub fn key_pressed(&self, k: Keycode) -> bool {
         let scancode = Scancode::from_keycode(k);
         if let Some(s) = scancode
         {
             let pressed = self.sdl_events.keyboard_state().is_scancode_pressed(s);
-            if pressed
-            {
-                sleep(Duration::from_millis(50));
-            }
+
             return pressed;
         }
         else
