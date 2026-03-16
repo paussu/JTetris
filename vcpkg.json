@@ -1,0 +1,11 @@
+{
+  "name": "jtetris",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "glew",
+    "opengl",
+    "sdl2",
+    "sdl2-image",
+    "sdl2-ttf"
+  ]
+}

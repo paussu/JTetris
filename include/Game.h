@@ -7,8 +7,9 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <string>
 #include <vector>
-#include <bits/unique_ptr.h>
+#include <memory>
 #include <random>
 #include <cmath>
 
@@ -38,16 +39,21 @@ private:
     void EmptyMap();
     bool UpdatePosition(int x, int y);
 
-    void RenderText(const char* text, int x, int y, int w, int h);
+    void DrawFilledRect(const SDL_Rect& rect, SDL_Color color);
+    void DrawRectOutline(const SDL_Rect& rect, SDL_Color color);
+    void DrawPanel(const SDL_Rect& rect, SDL_Color fillColor, SDL_Color borderColor);
+    void RenderText(TTF_Font* font, const char* text, const SDL_Rect& rect, SDL_Color color, bool centered = false);
     SDL_Window* window;
     SDL_Renderer* renderer;
     TTF_Font* mFont;
+    TTF_Font* mTitleFont;
+    TTF_Font* mValueFont;
+    TTF_Font* mSmallFont;
 
     bool isRunning;
     bool isTetromino;
     bool gameRestarted;
     bool gameStopped;
-    bool hideInfo;
 
     const int mMapWidth = 20;
     const int mMapHeight = 30;
