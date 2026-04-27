@@ -1,9 +1,4 @@
-//
-// Created by jipe on 5/21/20.
-//
-
-#ifndef JTETRIS_BLOCK_H
-#define JTETRIS_BLOCK_H
+#pragma once
 
 #include <SDL2/SDL_pixels.h>
 
@@ -15,14 +10,8 @@ enum BlockType
     MOVING
 };
 
-class Block
+struct Block
 {
-public:
-    Block(BlockType type, SDL_Color color);
-
-    BlockType Type;
-    SDL_Color Color;
+    BlockType type  = EMPTY;
+    SDL_Color color = {};
 };
-
-
-#endif //JTETRIS_BLOCK_H

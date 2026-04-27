@@ -1,18 +1,15 @@
-#include <cstdlib>
 #include "Game.h"
 #include "Menu.h"
 
-
-int main(int argc, char** argv)
+int main(int , char**)
 {
     Menu menu;
-    bool success = menu.Initialize();
 
-    if(success)
-    {
-        menu.RunLoop();
-    }
+    if(!menu.Initialize())
+        return EXIT_FAILURE;
 
+    menu.RunLoop();
     menu.Shutdown();
-    return 0;
+
+    return EXIT_SUCCESS;
 }

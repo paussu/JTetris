@@ -1,14 +1,8 @@
-//
-// Created by jipe on 5/13/20.
-//
-
-#ifndef JTETRIS_MENU_H
-#define JTETRIS_MENU_H
-
+#pragma once
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include <memory>
 #include <string>
 #include <vector>
 #include "Game.h"
@@ -16,49 +10,39 @@
 struct ResolutionChoice
 {
     std::string title;
-    int w, h;
+    int         width;
+    int         height;
 };
 
 class Menu
 {
 public:
-    Menu();
-    bool Initialize();
+    Menu() = default;
+    [[nodiscard]] bool Initialize();
 
     void RunLoop();
 
     void Shutdown();
 private:
     void ProcessInput();
-    bool LoadMenu();
+    [[nodiscard]] bool LoadMenu();
     void UnloadMenu();
     void DrawMenu();
     void DrawOptions();
 
-    SDL_Window* mWindow;
-    SDL_Renderer* mRenderer;
+    SDL_Window*        mWindow    = nullptr;
+    struct nk_context* mCtx       = nullptr;
+    SDL_GLContext      mGlContext = nullptr;
 
-    bool mIsRunning;
-    bool mGameStart;
-    bool mOptions;
-    bool mNetworkOptions;
+    int mWidth              = 0;
+    int mHeight             = 0;
+    int mButtonWidth        = 0;
+    int mButtonHeight       = 0;
+    int mSelectedResolution = 0;
 
-    Uint32 mTicksCount;
-    int mWidth;
-    int mHeight;
+    bool mIsRunning  = false;
+    bool mGameStart  = false;
+    bool mOptions    = false;
 
-    bool debug = true;
-
-    TTF_Font* menutFont;
-    struct nk_context *ctx;
-    SDL_GLContext glContext;
-    int mButtonWidth;
-    int mButtonHeight;
-
-    int i, selected_resolution;
-    std::vector<ResolutionChoice> resolutions;
+    std::vector<ResolutionChoice> mResolutions;
 };
-
-
-
-#endif //JTETRIS_MENU_H

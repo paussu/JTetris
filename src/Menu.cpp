@@ -1,12 +1,3 @@
-//
-// Created by jipe on 5/13/20.
-//
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
@@ -14,7 +5,6 @@
 #include <cstring>
 #include <cmath>
 #include <cassert>
-#include <cmath>
 #include <climits>
 #include <ctime>
 
@@ -40,33 +30,28 @@
 #define MAX_VERTEX_MEMORY 512 * 1024
 #define MAX_ELEMENT_MEMORY 128 * 1024
 
-Menu::Menu()
-{
-
-}
-
 bool Menu::Initialize()
 {
-    mWidth = 1024;
+    mWidth  = 1024;
     mHeight = 768;
 
-    if(!LoadMenu()) return false;
+    if(!LoadMenu())
+        return false;
 
-    mIsRunning = true;
-    mGameStart = false;
+    mIsRunning  = true;
+    mGameStart  = false;
 
-    mButtonWidth = 320;
+    mButtonWidth  = 320;
     mButtonHeight = 120;
-    selected_resolution = 2;
+    mSelectedResolution = 2;
 
-    //LoadMenu();
-    resolutions.push_back({"640x480", 640, 480});
-    resolutions.push_back({"800x600", 800, 600});
-    resolutions.push_back({"1024x768", 1024, 768});
-    resolutions.push_back({"1280×960", 1280, 960});
-    resolutions.push_back({"1440x900", 1440, 900});
-    resolutions.push_back({"1600×1200", 1600, 1200});
-    resolutions.push_back({"1920x1080", 1920, 1080});
+    mResolutions.push_back({"640x480",    640,  480});
+    mResolutions.push_back({"800x600",    800,  600});
+    mResolutions.push_back({"1024x768",  1024,  768});
+    mResolutions.push_back({"1280x960",  1280,  960});
+    mResolutions.push_back({"1440x900",  1440,  900});
+    mResolutions.push_back({"1600x1200", 1600, 1200});
+    mResolutions.push_back({"1920x1080", 1920, 1080});
 
     return true;
 }
@@ -85,18 +70,18 @@ void Menu::RunLoop()
         if(mGameStart)
         {
             UnloadMenu();
-            Game* game = new Game(resolutions[selected_resolution].w, resolutions[selected_resolution].h);
-            bool success = game->Initialize();
+            auto game = std::make_unique<Game>(
+                mResolutions[mSelectedResolution].width,
+                mResolutions[mSelectedResolution].height);
 
-            if(success)
-            {
+            if(game->Initialize())
                 game->Run();
-            }
 
             game->Shutdown();
-            delete game;
             mGameStart = false;
-            LoadMenu();
+
+            if (!LoadMenu())
+                mIsRunning = false;
         }
 
         DrawMenu();
@@ -129,21 +114,21 @@ bool Menu::LoadMenu()
         return false;
     }
 
-    glContext = SDL_GL_CreateContext(mWindow);
+    mGlContext = SDL_GL_CreateContext(mWindow);
     SDL_GetWindowSize(mWindow, &mWidth, &mHeight);
 
-    /* OpenGL setup */
     glViewport(0, 0, mWidth, mHeight);
     glewExperimental = 1;
-    if (glewInit() != GLEW_OK) {
+    if (glewInit() != GLEW_OK)
+    {
         fprintf(stderr, "Failed to setup GLEW\n");
-        exit(1);
+        return false;
     }
 
-    glContext = SDL_GL_CreateContext(mWindow);
-    ctx = nk_sdl_init(mWindow);
+    mCtx = nk_sdl_init(mWindow);
 
-    {struct nk_font_atlas *atlas;
+    {
+        struct nk_font_atlas* atlas;
         nk_sdl_font_stash_begin(&atlas);
         nk_sdl_font_stash_end();
     }
@@ -155,8 +140,8 @@ bool Menu::LoadMenu()
 void Menu::UnloadMenu()
 {
     nk_sdl_shutdown();
-    SDL_GL_DeleteContext(glContext);
-    glContext = nullptr;
+    SDL_GL_DeleteContext(mGlContext);
+    mGlContext = nullptr;
     SDL_DestroyWindow(mWindow);
     mWindow = nullptr;
     SDL_Quit();
@@ -164,7 +149,7 @@ void Menu::UnloadMenu()
 
 void Menu::ProcessInput()
 {
-    nk_input_begin(ctx);
+    nk_input_begin(mCtx);
 
     SDL_Event event;
 
@@ -175,61 +160,53 @@ void Menu::ProcessInput()
             case SDL_QUIT:
                 mIsRunning = false;
                 break;
-
         }
         nk_sdl_handle_event(&event);
     }
-    nk_input_end(ctx);
+    nk_input_end(mCtx);
 
-    const Uint8* state = SDL_GetKeyboardState(NULL);
+    const Uint8* state = SDL_GetKeyboardState(nullptr);
 
     if(state[SDL_SCANCODE_ESCAPE])
-    {
         mIsRunning = false;
-    }
-
 }
 
 void Menu::DrawMenu()
 {
-
-    if (nk_begin(ctx, "Main menu", nk_rect(10, 10, mWidth - 10, mHeight - 10),
+    if (nk_begin(mCtx, "Main menu", nk_rect(10, 10, mWidth - 10, mHeight - 10),
                  NK_WINDOW_BORDER|NK_WINDOW_NO_INPUT|NK_WINDOW_SCALABLE|
                  NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
     {
-
-        nk_layout_space_begin(ctx, NK_STATIC, 0, 1);
+        nk_layout_space_begin(mCtx, NK_STATIC, 0, 1);
         {
-            nk_layout_space_push(ctx,
+            nk_layout_space_push(mCtx,
                                  nk_rect(mWidth / 2 - (mButtonWidth / 2), mHeight - mButtonHeight * 6, mButtonWidth, mButtonHeight));
-            if (nk_button_label(ctx, "Start game"))
-            {
+            if (nk_button_label(mCtx, "Start Game"))
                 mGameStart = true;
-            }
 
-            nk_layout_space_push(ctx,
+            nk_layout_space_push(mCtx,
                                  nk_rect(mWidth / 2 - (mButtonWidth / 2), mHeight - mButtonHeight * 5, mButtonWidth, mButtonHeight));
-            if (nk_button_label(ctx, "Options")) mOptions = true;
-            nk_layout_space_push(ctx,
+            if (nk_button_label(mCtx, "Options"))
+                mOptions = true;
+
+            nk_layout_space_push(mCtx,
                                  nk_rect(mWidth / 2 - (mButtonWidth / 2), mHeight - mButtonHeight * 4, mButtonWidth, mButtonHeight));
-            if (nk_button_label(ctx, "Exit")) mIsRunning = false;
+
+            if (nk_button_label(mCtx, "Exit"))
+                mIsRunning = false;
         }
 
-        nk_layout_space_end(ctx);
-
+        nk_layout_space_end(mCtx);
     }
-    nk_end(ctx);
+    nk_end(mCtx);
 
     if(mOptions)
-    {
         DrawOptions();
-    }
 
-    /* Draw */
     SDL_GetWindowSize(mWindow, &mWidth, &mHeight);
     glViewport(0, 0, mWidth, mHeight);
     glClear(GL_COLOR_BUFFER_BIT);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     /* IMPORTANT: `nk_sdl_render` modifies some global OpenGL state
      * with blending, scissor, face culling, depth test and viewport and
      * defaults everything back into a default state.
@@ -241,28 +218,31 @@ void Menu::DrawMenu()
 
 void Menu::DrawOptions()
 {
-    if (nk_begin(ctx, "Options", nk_rect(mWidth / 4, mHeight / 4, mWidth / 2, mHeight / 2),
+    if (nk_begin(mCtx, "Options", nk_rect(mWidth / 4, mHeight / 4, mWidth / 2, mHeight / 2),
                  NK_WINDOW_TITLE|NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|
                  NK_WINDOW_NO_SCROLLBAR))
     {
-        nk_layout_row_dynamic(ctx, 30, 2);
+        nk_layout_row_dynamic(mCtx, 30, 2);
 
-        nk_label(ctx, "Game resolution:", NK_TEXT_RIGHT);
-        if (nk_combo_begin_label(ctx, resolutions[selected_resolution].title.c_str(), nk_vec2(nk_widget_width(ctx), 200)))
+        nk_label(mCtx, "Game resolution:", NK_TEXT_RIGHT);
+        if (nk_combo_begin_label(mCtx, mResolutions[mSelectedResolution].title.c_str(), nk_vec2(nk_widget_width(mCtx), 200)))
         {
-            nk_layout_row_dynamic(ctx, 25, 1);
-            for (i = 0; i < resolutions.size(); ++i)
-                if (nk_combo_item_label(ctx, resolutions[i].title.c_str(), NK_TEXT_LEFT)) selected_resolution = i;
-            nk_combo_end(ctx);
+            nk_layout_row_dynamic(mCtx, 25, 1);
+            for (int i = 0; i < static_cast<int>(mResolutions.size()); ++i)
+            {
+                if (nk_combo_item_label(mCtx, mResolutions[i].title.c_str(), NK_TEXT_LEFT))
+                    mSelectedResolution = i;
+            }
+            nk_combo_end(mCtx);
         }
-        nk_layout_space_begin(ctx, NK_STATIC, 0, 1);
+        nk_layout_space_begin(mCtx, NK_STATIC, 0, 1);
         {
-            nk_layout_space_push(ctx,
-                                 nk_rect(mWidth / 3 + 60, mHeight / 3,  80, 40));
-            if (nk_button_label(ctx, "Back")) mOptions = false;
+            nk_layout_space_push(mCtx, nk_rect(mWidth / 3 + 60, mHeight / 3, 80, 40));
+            if (nk_button_label(mCtx, "Back"))
+                mOptions = false;
         }
 
-        nk_layout_space_end(ctx);
+        nk_layout_space_end(mCtx);
     }
-    nk_end(ctx);
+    nk_end(mCtx);
 }

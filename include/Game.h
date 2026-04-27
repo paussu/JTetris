@@ -1,9 +1,4 @@
-//
-// Created by jipe on 5/13/20.
-//
-
-#ifndef JTETRIS_GAME_H
-#define JTETRIS_GAME_H
+#pragma once
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -21,7 +16,7 @@ public:
 
     Game(int width, int height);
 
-    bool Initialize();
+    [[nodiscard]] bool Initialize();
     void Run();
     void Shutdown();
 
@@ -43,42 +38,39 @@ private:
     void DrawRectOutline(const SDL_Rect& rect, SDL_Color color);
     void DrawPanel(const SDL_Rect& rect, SDL_Color fillColor, SDL_Color borderColor);
     void RenderText(TTF_Font* font, const char* text, const SDL_Rect& rect, SDL_Color color, bool centered = false);
-    SDL_Window* window;
-    SDL_Renderer* renderer;
-    TTF_Font* mFont;
-    TTF_Font* mTitleFont;
-    TTF_Font* mValueFont;
-    TTF_Font* mSmallFont;
 
-    bool isRunning;
-    bool isTetromino;
-    bool gameRestarted;
-    bool gameStopped;
+    static constexpr int         kMapWidth  = 20;
+    static constexpr int         kMapHeight = 30;
+    static constexpr int         kBlockGap  = 1;
+    static constexpr const char* kFontPath  = "Assets/PressStart2P-Regular.ttf";
 
-    const int mMapWidth = 20;
-    const int mMapHeight = 30;
-    const int mBlockGap = 1;
+    SDL_Window*   mWindow   = nullptr;
+    SDL_Renderer* mRenderer = nullptr;
+    TTF_Font*     mFont      = nullptr;
+    TTF_Font*     mTitleFont = nullptr;
+    TTF_Font*     mValueFont = nullptr;
+    TTF_Font*     mSmallFont = nullptr;
 
-    int mWidth, mHeight;
-    int mBlockSize;
-    int mDropSpeed;
-    int mScore;
-    int mLines;
-    int mLevel;
+    int    mWidth     = 0;
+    int    mHeight    = 0;
+    int    mBlockSize = 0;
+    int    mDropSpeed = 500;
+    int    mScore     = 0;
+    int    mLines     = 0;
+    int    mLevel     = 1;
+    Uint32 mTicksCount  = 0;
+    Uint32 mCurrentTime = 0;
+    Uint32 mLastTime    = 0;
 
-    std::string ScoreText;
-    std::string LevelText;
-    std::string LinesText;
-    Uint32 ticksCount;
-    Uint32 currentTime;
-    Uint32 lastTime;
+    bool mIsRunning     = true;
+    bool mIsTetromino   = false;
+    bool mGameRestarted = false;
+    bool mGameStopped   = false;
+
     std::random_device mRandomDevice;
     std::mt19937 mRandomNumberGenerator;
-    std::uniform_int_distribution<std::mt19937::result_type> numberDistribution;
-    std::uniform_int_distribution<std::mt19937::result_type> colorDistribution;
+    std::uniform_int_distribution<std::mt19937::result_type> mNumberDistribution;
+    std::uniform_int_distribution<std::mt19937::result_type> mColorDistribution;
     std::vector<std::vector<Block>> mGameMap;
-
-    std::unique_ptr<Tetromino> mTetromino;
+    std::unique_ptr<Tetromino>       mTetromino;
 };
-
-#endif //JTETRIS_GAME_H

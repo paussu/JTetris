@@ -1,9 +1,4 @@
-//
-// Created by jipe on 5/13/20.
-//
-
-#ifndef JTETRIS_TETROMINO_H
-#define JTETRIS_TETROMINO_H
+#pragma once
 
 #include <vector>
 #include <SDL2/SDL_stdinc.h>
@@ -25,15 +20,19 @@ class Tetromino
 {
 public:
     Tetromino(TetrominoType type, SDL_Color color);
-    std::vector<std::vector<Block>> Blocks;
-    Vector2 Position;
-    void AddRotation();
-    int GetRotation();
-    TetrominoType GetType();
+
+    std::vector<std::vector<Block>>& GetBlocks() { return mBlocks; }
+    const std::vector<std::vector<Block>>& GetBlocks() const { return mBlocks; }
+    Vector2& GetPosition() { return mPosition; }
+    const Vector2& GetPosition() const { return mPosition; }
+
+    void          AddRotation()  { mRotation = (mRotation + 90) % 360; }
+    int           GetRotation() const { return mRotation; }
+    TetrominoType GetType()     const { return mType; }
+
 private:
-    int Rotation;
-    TetrominoType Type;
+    Vector2       mPosition;
+    int           mRotation = 0;
+    TetrominoType mType     = I;
+    std::vector<std::vector<Block>> mBlocks;
 };
-
-
-#endif //JTETRIS_TETROMINO_H
